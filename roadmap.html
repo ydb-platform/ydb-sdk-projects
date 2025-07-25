@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диаграмма Гантта - H2 2025</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .gantt-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .gantt-chart {
+            min-width: 1200px;
+            position: relative;
+        }
+
+        .timeline-header {
+            display: flex;
+            border-bottom: 2px solid #333;
+            margin-bottom: 10px;
+            height: 60px;
+        }
+
+        .timeline-label-space {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: larger !important;
+        }
+
+        .timeline {
+            flex: 1;
+            display: flex;
+            align-items: end;
+        }
+
+        .month {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            border-left: 1px solid #ccc;
+            padding: 5px;
+        }
+
+        .weeks {
+            display: flex;
+            height: 20px;
+            font-size: 12px;
+        }
+
+        .week {
+            flex: 1;
+            border-left: 1px solid #eee;
+            text-align: center;
+        }
+
+        .current-date {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: red;
+            z-index: 100;
+        }
+
+        .executor-group {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .executor-header {
+            background-color: #e8f4f8;
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .task-row {
+            display: flex;
+            align-items: center;
+            min-height: 40px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .task-label {
+            width: 300px;
+            padding: 8px;
+            font-size: 12px;
+            border-right: 1px solid #ddd;
+            background-color: #fafafa;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-timeline {
+            flex: 1;
+            position: relative;
+            height: 40px;
+        }
+
+        .task-bar {
+            position: absolute;
+            height: 24px;
+            top: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 0;
+            color: white;
+            cursor: pointer;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .commitment {
+            border: 3px solid #28a745;
+            background-color: #28a745;
+        }
+
+        .best-effort {
+            border: 3px solid #17a2b8;
+            background-color: #17a2b8;
+        }
+
+        .student-task {
+            border: 3px solid #fd7e14;
+            background-color: #fd7e14;
+        }
+
+        .completed {
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+        }
+
+        .in-progress {
+            background: linear-gradient(90deg, #ffc107 0%, #28a745 100%);
+            border-color: #ffc107;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-bar {
+            width: 20px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+    </style>
+</head>
+<body>
+<div class="gantt-container">
+    <h2>Диаграмма Гантта - Roadmap команды H2 2025</h2>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-bar commitment"></div>
+            <span>Commitment</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-bar best-effort"></div>
+            <span>Best Effort</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-bar student-task"></div>
+            <span>Студент/Стажер</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-bar completed"></div>
+            <span>Готово</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-bar in-progress"></div>
+            <span>В работе</span>
+        </div>
+    </div>
+
+    <div class="gantt-chart" id="ganttChart">
+        <!-- Таймлайн будет сгенерирован JavaScript -->
+    </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+    // Данные задач (используйте полный массив из предыдущего ответа)
+    const tasks = [
+        {
+            name: "Implicit Sessions",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 1,
+            isCompleted: true,
+            canParallel: false,
+            description: "Из Go SDK можно выполнять запросы к QueryService с неявными сессиями",
+            goal: "Поддержка серверных сих",
+            customer: "Упрощает работу с серверлесс функциями и контейнерами"
+        },
+        {
+            name: "Сделать приветствие в интерактивном режиме CLI с проверкой доступности",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 2,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: true,
+            canParallel: false,
+            description: "Приветствие с инструкциями и проверка на доступность в интерактивном режиме, проверка новой версии",
+            goal: "Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "SQLC",
+            executor: "Алексей Мясников (asmyasnikov)",
+            priority: 0,
+            isStudent: true,
+            commitment: true,
+            duration: 12,
+            isCompleted: false,
+            canParallel: true,
+            description: "Кодогенерация в Go (over query service client), Python, Kotlin, Typescript. PR в upstream",
+            goal: "Интеграции, Internal Feature Request, Yandex Cloud, Yandex Infrastructure",
+            customer: "Облако, Интра"
+        },
+        {
+            name: "ODBC",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "Статья в документации, порт на яндекс-табс, из PHP можно работать с YDB через odbc_connect, из Erlang",
+            goal: "Интеграции, OLAP, Продуктовое развитие",
+            customer: ""
+        },
+        {
+            name: "API для пользовательского средпула в С++ SDK",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 0,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "unified agent",
+            goal: "Удобство пользователей, Интеграции, Yandex Infrastructure, Yandex Cloud",
+            customer: "unified agent"
+        },
+        {
+            name: "Запуск Serverless YDB && DocAPI в KZ",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 6,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/SLYDB-1275",
+            goal: "Serverless",
+            customer: "Billim, Т-Банк"
+        },
+        {
+            name: "Lock Free Session Pool",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 0,
+            isStudent: false,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: false,
+            description: "Session Idle Timeout (default 5 min), Lock free algoritm (HikariPool), Benchmark",
+            goal: "Надежность + Observability, Удобство пользователей, Рефакторинг",
+            customer: "МСБ, Заправки, Касперский. Каждый пользователь не зная об этом, жаждет это"
+        },
+        {
+            name: "yandex_ydb_database_serverless fail to update",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Закрытие проблем GitHub issues 527, 524",
+            goal: "Internal Feature Request, Serverless, Удобство пользователей, Yandex Cloud",
+            customer: "staff:nikthespirit"
+        },
+        {
+            name: "Популяризация векторного поиска",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 0,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "Статьи, Вебинар, Конфа?",
+            goal: "AI",
+            customer: ""
+        },
+        {
+            name: "Custdev Enterprise Feature Request // сбор потребностей заказчиков",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 0,
+            isStudent: false,
+            commitment: false,
+            duration: 12,
+            isCompleted: false,
+            canParallel: true,
+            description: "список задач на доработки для Enterprise заказчиков",
+            goal: "Enterprise Feature Request",
+            customer: ""
+        },
+        {
+            name: "Тестирование SDK против YDB в 2DC - отказ 1 ДЦ - переключение standby",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "SLO action работает против 2ДЦ конфигурации, добавлены сценарии отказа ДЦ, закрытие ДЦ",
+            goal: "Enterprise Feature Request, Поддержка серверных сих, 2ДЦ, Рефакторинг",
+            customer: "Enterprise заказчики"
+        },
+        {
+            name: "Документация к Node JS 6.0 на ydb.tech",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 0,
+            isStudent: false,
+            commitment: true,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "Доработки транзакций топик-таблица в Java SDK",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://wiki.yandex-team.ru/users/alexandr268/izvestnye-problemy-java-topics/",
+            goal: "Topic",
+            customer: "Logbroker"
+        },
+        {
+            name: "Поддержка расширенных типов дат и интервалов (Date32, Datetime64, Timestamp64, Interval64)",
+            executor: "Алексей Мясников (asmyasnikov)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "Поддержка во всех SDK: Java (Native, JDBC, Spring JDBC, Hibernate), Go (Native, database/sql), Python (Native, sqlalchemy, DB API), C++, C# (Native, ADO.Net, EntityFramework, LINQ2DB), Node.js, JOOQ, PHP, Rust, GORM, XORM",
+            goal: "Поддержка серверных сих, Enterprise Feature Request",
+            customer: ""
+        },
+        {
+            name: "Deadline propagation",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 1,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Надежность + Observability, Internal Feature Request",
+            customer: "userver"
+        },
+        {
+            name: "Доработки Discovery сервиса для работы в 2ДЦ",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: false,
+            description: "кластер и клиенты успешно переключаются с одного pile на другой за 10 секунд",
+            goal: "2ДЦ, Рефакторинг, Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "CoordinationService в Serverless YDB",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 3,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/SLYDB-1281",
+            goal: "Serverless, Internal Feature Request, Удобство пользователей",
+            customer: "Яндекс Банку для распределенных транзакций"
+        },
+        {
+            name: "FerretDB",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "PoC: Оценить производительность FerretDB vs MongoDB, оценить ограничения, если показатели конкурентоспособны, запуск в public preview",
+            goal: "Интеграции, Serverless, Продуктовое развитие, Yandex Cloud, QueryService, Совместимость",
+            customer: "Продуктовое развитие - потенциальные пользователи, которые готовы съехать с Dedicated MongoDB на Serverless MongoDB"
+        },
+        {
+            name: "Stable ADO.NET - 1.0.0",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 1,
+            isStudent: false,
+            commitment: false,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "Преобразовывать лист параметров в выражении IN (@a, @b, @c ... ) в IN $LIST_YDB, DbBatch, Политика ретраев для YdbDataSource, Benchmarks, Расширенные временные типы, Нативный Bulk Upsert",
+            goal: "Надежность + Observability, Удобство пользователей, Performance, Serverless, Enterprise Feature Request, QueryService",
+            customer: "МСБ, Заправки, Касперский"
+        },
+        {
+            name: "Работа с базами ydb при недоступности части ip в dns_rr записи",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "Unit- и SLO-тест KIKIMR-23023",
+            goal: "Надежность + Observability",
+            customer: "NLB, По следам инцидента"
+        },
+        {
+            name: "Вынести ydb_int в Github",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 1,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "ydb_int в Github, собирается и работает",
+            goal: "Enterprise Feature Request",
+            customer: "Позволит использовать фичу ydb sql-operation всем желающим"
+        },
+        {
+            name: "DBT",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 1,
+            isStudent: false,
+            commitment: false,
+            duration: 5,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "OLAP, Yandex Scale, ETL",
+            customer: ""
+        },
+        {
+            name: "Статья для Scale про разработку на YDB c использованием AI KIKIMR-23494",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "статья в облачной документации, вебинар, скринкаст",
+            goal: "Документация (примеры, статьи), AI",
+            customer: ""
+        },
+        {
+            name: "Починить проблемы local-ydb",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 1,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "KIKIMR-21942, KIKIMR-23387, KIKIMR-23386, KIKIMR-19992, KIKIMR-23498",
+            goal: "Удобство пользователей, Технический долг",
+            customer: "Основной заказчик - ЯГП"
+        },
+        {
+            name: "Документация по JDBC драйверу и всем сопутствующим диалектам на ydb.tech",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "актуализировать документацию по опциям JDBC, документация по возможностям JDBC - Hibernate, диалекты, обновить документацию по использованию драйвера в IDE, добавить документацию про спецрежимы",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "Поддержка параметризованного Decimal",
+            executor: "Алексей Мясников (asmyasnikov)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "Поддержка во всех SDK: Java (Native, JDBC, Spring JDBC, Hibernate), Go (Native, database/sql), Python (Native, sqlalchemy, DB API), C++, C# (Native, ADO.Net, EntityFramework, LINQ2DB), Node.js, JOOQ, PHP, Rust, GORM, XORM",
+            goal: "Поддержка серверных сих, Enterprise Feature Request",
+            customer: ""
+        },
+        {
+            name: "C++ SLO - native SDK, userver",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 2,
+            isStudent: false,
+            commitment: false,
+            duration: 3,
+            isCompleted: false,
+            canParallel: true,
+            description: "SLO native SDK, SLO userver",
+            goal: "Технический долг, Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Сквозные трейсы YDB + Proxy",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "на cloud preprod ydb public уже включены трейсы, но они отгружаются в продовый трейсинг",
+            goal: "Удобство пользователей",
+            customer: "Продуктовое развитие"
+        },
+        {
+            name: "Stable EF - 1.0.0 over stable ADO.NET",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "Политика ретраев работает ожидаемо, BulkUpsert hint, Benchmarks, Пройти тестирование FunctionalTests, Json / JsonDocument базовая поддержка, Расширенные временные типы, Add ILIKE operator support, Пакетная загрузка",
+            goal: "Интеграции",
+            customer: "МСБ"
+        },
+        {
+            name: "YDB как хранилище для Hashicorp Vault",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 10,
+            isCompleted: false,
+            canParallel: true,
+            description: "В нашем fork Vault работает на YDB, реализована API, проходят тесты, Best Effort: Релиз UpStream c YDB, Документация на сайте Vault, ydb.tech, Анонс",
+            goal: "Интеграции",
+            customer: "Честный Знак"
+        },
+        {
+            name: "Показывать список изменений средствами YDB CLI. Не блокироваться в документацию",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 2,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "KIKIMR-23709",
+            goal: "Удобство пользователей, CLI",
+            customer: ""
+        },
+        {
+            name: "YDB dialect in sqlglot",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 2,
+            isStudent: false,
+            commitment: false,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "Запланирована процессированная интеграция в апстрим",
+            goal: "Интеграции",
+            customer: "staff:slonn"
+        },
+        {
+            name: "Production ready Транзакции топик-таблица в Rust SDK",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 2,
+            isStudent: false,
+            commitment: true,
+            duration: 4,
+            isCompleted: false,
+            canParallel: false,
+            description: "",
+            goal: "Поддержка серверных сих, Надежность + Observability",
+            customer: "xAI/GROK"
+        },
+        {
+            name: "Улучшение SLO",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 2,
+            isStudent: false,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "тест, который говорит - прошел/не прошел, по графикам можно понять есть ли деградация, генерализация нагрузок (чтобы не только KV), кастомные настройки инициализации и запуска, кастомные графики",
+            goal: "Надежность + Observability, Технический долг",
+            customer: ""
+        },
+        {
+            name: "Apache Flink",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 3,
+            isStudent: false,
+            commitment: true,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Enterprise Feature Request, OLAP, ETL",
+            customer: "Продуктовое развитие OLAP"
+        },
+        {
+            name: "Поделать статью про пул сессий SDK https://ydb.tech/docs/en/reference/ydb-sdk/recipes/session-pool-limit",
+            executor: "Алексей Мясников (asmyasnikov)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "примеры для всех ЯП: Python, Rust, C++, NodeJS, .Net, PHP",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "Простое API в C++ SDK",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Динамический Дискавери и единственный NLB для стартового эндпойнта",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "SLYDB-1206, SLYDB-1207",
+            goal: "Serverless, Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "LINQ2DB",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 3,
+            isStudent: true,
+            commitment: true,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "merge в upstream / релиз библиотеки на своей стороне Ydb.Linq2db, Обильное тестирование, Расширенные временные типы, Benchmarks, SLO тест, Пакетная загрузка, Политика ретраев, workaround коррелированных подзапросов",
+            goal: "Интеграции",
+            customer: "МСБ"
+        },
+        {
+            name: "Запросы без кросс-ДЦ трафика (напрямую в узлы с данными)",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 3,
+            isCompleted: false,
+            canParallel: false,
+            description: "Мы можем избавиться от части кросс-дц трафика на записи, если на клиенте сплитить данные по шардам и направлять их сразу на ту ноду, где живет соответствующая таблетка",
+            goal: "Internal Feature Request, Yandex Cloud",
+            customer: "FQ"
+        },
+        {
+            name: "Привести все пути локальных файлов CLI к единому стандарту",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/KIKIMR-23758",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "Сделать TValue to CSV converter в YDB CLI",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 3,
+            isStudent: true,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "https://github.com/ydb-platform/ydb/issues/9678 - Сейчас вывод с --format csv может не соответствовать аналогичному csv на входе",
+            goal: "Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Запись без дедупликации python sdk",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "простая фича",
+            goal: "Удобство пользователей, Поддержка серверных сих, Topic",
+            customer: "Такси"
+        },
+        {
+            name: "Передать ownership федеративных топик SDKs: python и go",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 3,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Орг.вопросы",
+            customer: ""
+        },
+        {
+            name: "Поддержка YDB в TypeORM",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 3,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Интеграции",
+            customer: "Community, МГП"
+        },
+        {
+            name: "Развитие Spark",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 4,
+            isStudent: false,
+            commitment: false,
+            duration: 5,
+            isCompleted: false,
+            canParallel: true,
+            description: "Pushdown - 3w, Оптимизация - research, Расширенные режимы записи - 2w",
+            goal: "Интеграции, ETL, OLAP",
+            customer: "Договориться со staff:slonn"
+        },
+        {
+            name: "Добавление логирования в C++ SDK",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "Текущее логирование не позволяет расследовать инциденты",
+            goal: "Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Трейсинг в С++ SDK",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Надежность + Observability",
+            customer: "Силами студента"
+        },
+        {
+            name: "Новый интерфейс отгрузки метрик в любую систему + адаптер для Prometheus",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Надежность + Observability, Удобство пользователей",
+            customer: "Силами студента?"
+        },
+        {
+            name: "Переход на Unified-agent для поставки метрик",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 4,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/SLYDB-1258",
+            goal: "Serverless, Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "YDB как хранилище для KeyCloak",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 4,
+            isStudent: false,
+            commitment: false,
+            duration: 12,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Enterprise Feature Request, Интеграции",
+            customer: "Честный знак"
+        },
+        {
+            name: "Перепридумать PreferLocalDC (prefer - предпочитать, а не строго ограничивать) KIKIMR-22694",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "Главное закрытие ДЦ не приводит к перегрузкам нод в закрываемом ДЦ",
+            goal: "Надежность + Observability, Технический долг",
+            customer: "По следам инцидента с Алисой, предложение от Такси. Могут потребоваться доработки на сервере"
+        },
+        {
+            name: "Настройки в интерактивном CLI",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: false,
+            description: "1. Возможность включать/выключать syntax highlighting (MUST), 2. Возможность включать/выключать подсказки (MUST), 3. Возможность выбирать одну из нескольких цветовых схем (пусть их будет 3), 4. Возможность задавать вышеприведённые настройки (MUST)",
+            goal: "Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Написать документацию по Python интеграциям - Django - SQL Alchemy",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 4,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "Документация отличий YDB vs Postgres, Oracle, MsSQL",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 4,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "Поддержка YDB в Knex.js",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 4,
+            isStudent: true,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Интеграции",
+            customer: "Datalens"
+        },
+        {
+            name: "[Добавить настройку трассировки в Java SDK](https://st.yandex-team.ru/KIKIMR-14652?). Поддерживать в качестве провайдеров OpenTelemetry.",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 5,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Надежность + Observability, Технический долг",
+            customer: ""
+        },
+        {
+            name: "Отказ от пагинации в фичах Scan и Query Document API",
+            executor: "Евгений Прокофьев (prkkofev)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/SLYDB-1282",
+            goal: "Serverless, QueryService, Технический долг",
+            customer: ""
+        },
+        {
+            name: "- Выступление на dotnext.ru - Habr статьи про YDB из .NET",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "https://dotnext.ru/talks/, Habr ADO.NET, Habr Dapper, Habr LINQ2DB, Habr EF",
+            goal: "Документация (примеры, статьи)",
+            customer: "Общее дело"
+        },
+        {
+            name: "GORM Production Ready",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 6,
+            isCompleted: false,
+            canParallel: true,
+            description: "Релиз 1.0.0, SLO успешно проходят на GORM, Документация на ydb.tech, Анонс, Best Effort: релиз upstream c YDB",
+            goal: "Интеграции",
+            customer: ""
+        },
+        {
+            name: "Terraform",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "https://st.yandex-team.ru/YDBOPS-12176",
+            goal: "Интеграции, Поддержка серверных сих",
+            customer: ""
+        },
+        {
+            name: "Ускорить процесс релиза YDB CLI",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 3,
+            isCompleted: false,
+            canParallel: true,
+            description: "Автоматизировать оставшиеся ручные процессы: Изменение файла с версией, добавление строчки с версией в changelog, Коммит этих изменений, Установка тега на коммит, Скачивание виндового бинарника, подпись в Signer, загрузка обратно в S3, Запись новой версии в файл stable и заливка в S3",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "AI в CLI",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "Отдельная команда для отправки запросов в LLM или интеграция в интерактивный режим",
+            goal: "Удобство пользователей",
+            customer: "@polrk Можно глянуть как сделано в Iterm2 в плане настроек. Хочется поддерживать разные API и разных провайдеров"
+        },
+        {
+            name: "Обновление документации Python SDK - пользователи часто ошибаются.",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "Документация должна содержать исчерпывающие примеры большинства активностей",
+            goal: "Документация (примеры, статьи), Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Дока как писать SDK https://github.com/ydb-platform/ydb/pull/10671",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 3,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Документация (примеры, статьи)",
+            customer: ""
+        },
+        {
+            name: "QueryService в Rust SDK",
+            executor: "Тимофей Кулин (rekby)",
+            priority: 5,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "QueryService, Поддержка серверных сих",
+            customer: ""
+        },
+        {
+            name: "Заменить самописный костыль (балансер) на правильную реализацию которая была заложена разработчикам GRPC",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 5,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Можно провести стрим, где я буду умолять на коленях GPT сделать все правильно",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "Оптимизировать потребление памяти в Java SDK - снести в ШЭД",
+            executor: "Александр Горшенин (alexandr268)",
+            priority: 6,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Performance",
+            customer: ""
+        },
+        {
+            name: "Отказ от library/cpp и util",
+            executor: "Булат Гаязов (brgayazov)",
+            priority: 6,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "Студенты?",
+            goal: "Удобство пользователей, Технический долг",
+            customer: ""
+        },
+        {
+            name: "ADO.NET в Serverless Container / Yandex Function",
+            executor: "Кирилл Курдюков (kurdyukov-kir)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "High latency on first request to YDB in serverless container (650–800 ms), Implicit Sessions",
+            goal: "Надежность + Observability, Удобство пользователей",
+            customer: "Артем Мрудников"
+        },
+        {
+            name: "Описать в документации трассировку работы Go SDK с использованием OpenTelemetry",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "Переписать раздел в документации: https://ydb.tech/docs/en/recipes/ydb-sdk/debug-jaeger",
+            goal: "Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Расширяемые пользовательские типы",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 6,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "Маппинг пользовательских типов Go в/из YDB, Документация на ydb.tech как замапить пользовательский тип, Example в ydb/go-sdk/exmaples, Example в package.go.dev",
+            goal: "Технический долг, Поддержка серверных сих, Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Исследовать возможность дальнейшего ускорения `ydb import file csv`",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 6,
+            isStudent: true,
+            commitment: false,
+            duration: 4,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Performance",
+            customer: ""
+        },
+        {
+            name: "Отслеживание используемых версий YDB CLI",
+            executor: "Николай Перфилов (pnv1)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Наладить строить метрики использования",
+            goal: "Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Пробрось сертификатов в интеграции",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Передача root_certificates доступна во всех интеграциях: SQLAlchemy, Airflow, Superset",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "Написать инструкции для LLM по модулям и проекта в целом, чтобы GPT-боты смог заменить кожаную",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Идеальный DoD - если пользователь завел Issue (баг в первую очередь), то можно призвать бота, который походит PR с фиксом бага",
+            goal: "Технический долг, Орг.вопросы, Удобство пользователей",
+            customer: ""
+        },
+        {
+            name: "Программная документация JS SDK на Github Pages https://t.me/ydb_ru/30714?thread=30673",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Документация (примеры, статьи)",
+            customer: "Community"
+        },
+        {
+            name: "Поддержка OpenTelemetry в JS SDK",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "поддерживать OTEL в JS SDK, документация, траблшутинг, рецепты",
+            goal: "Технический долг, Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Продвинутое тестирование, e2e тестирование, Slo тестирование и GitHub Actions",
+            executor: "Я Владислав Поляков (polrk)",
+            priority: 6,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "",
+            goal: "Надежность + Observability, Технический долг",
+            customer: ""
+        },
+        {
+            name: "Переключение тестов в репе YDB на QueryService",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 7,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: true,
+            description: "",
+            goal: "Надежность + Observability",
+            customer: "staff:maxim-yurchuk"
+        },
+        {
+            name: "Убрать таймаут 10 минут в Python topic sdk",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 7,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "",
+            goal: "Надежность + Observability",
+            customer: "Logbroker"
+        },
+        {
+            name: "Topic SDK SLO",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 8,
+            isStudent: false,
+            commitment: false,
+            duration: 1,
+            isCompleted: false,
+            canParallel: false,
+            description: "Добавлен процесс по тестированию топиков в Python SDK",
+            goal: "Надежность + Observability",
+            customer: ""
+        },
+        {
+            name: "Python topic sdk стабилизация",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 9,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "Есть большой список билетов, где писатель/читатель помирают и не оживают - это необходимо починить. https://github.com/ydb-platform/ydb-python-sdk/issues/538",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "Поддержка YDB в XORM",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 10,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "Сделал студент МТИ @datbeohbbh_1211, есть PR'ы в апстрим, пока не замерджено. Итого: поддержка есть, SLO показывает, что мы не можем рекомендовать этот ОРМ для продакшен-приложений. Пост от студента тоже в процессе",
+            goal: "Интеграции",
+            customer: ""
+        },
+        {
+            name: "Перевод тестов go fed sdk на рецепт, покрытие интеграционными тестами",
+            executor: "Константин Прокопенко (zkpo)",
+            priority: 10,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "",
+            goal: "Internal Feature Request, Технический долг, Topic",
+            customer: ""
+        },
+        {
+            name: "Python query service стабилизация",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 10,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: true,
+            description: "Текущий SLO часто ловит падения query session pool - это необходимо починить",
+            goal: "Технический долг",
+            customer: ""
+        },
+        {
+            name: "fastapi/sqlmodel compatibility",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 10,
+            isStudent: true,
+            commitment: false,
+            duration: 8,
+            isCompleted: false,
+            canParallel: true,
+            description: "Рабочий пример на данной ОРМке, Дока",
+            goal: "Интеграции",
+            customer: ""
+        },
+        {
+            name: "Перевод тестов python fed sdk на рецепт, покрытие интеграционными тестами",
+            executor: "Олег Овчарук (ovcharuk)",
+            priority: 10,
+            isStudent: false,
+            commitment: false,
+            duration: 2,
+            isCompleted: false,
+            canParallel: false,
+            description: "",
+            goal: "Internal Feature Request, Технический долг, Topic",
+            customer: ""
+        }
+    ];
+
+    const startDate = new Date('2025-07-01');
+    const currentDate = new Date('2025-07-25');
+    const endDate = new Date('2025-12-31');
+
+    // Вычисляем количество недель
+    const totalWeeks = Math.ceil((endDate - startDate) / (7 * 24 * 60 * 60 * 1000));
+
+    function createTimeline() {
+        const chart = document.getElementById('ganttChart');
+
+        // Создаем заголовок временной шкалы
+        const timelineHeader = document.createElement('div');
+        timelineHeader.className = 'timeline-header';
+
+        // Пространство для названий задач
+        const labelSpace = document.createElement('div');
+        labelSpace.className = 'task-label timeline-label-space';
+        labelSpace.textContent = 'Задачи';
+        timelineHeader.appendChild(labelSpace);
+
+        // Временная шкала
+        const timeline = document.createElement('div');
+        timeline.className = 'timeline';
+
+        const months = ['Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        months.forEach(month => {
+            const monthDiv = document.createElement('div');
+            monthDiv.className = 'month';
+            monthDiv.textContent = month;
+            timeline.appendChild(monthDiv);
+        });
+
+        timelineHeader.appendChild(timeline);
+        chart.appendChild(timelineHeader);
+
+        // Добавляем отметку текущей даты
+        const currentDateLine = document.createElement('div');
+        currentDateLine.className = 'current-date';
+        const currentPosition = ((currentDate - startDate) / (endDate - startDate)) * 100;
+        // 300px - ширина области задач, затем позиция в оставшейся области
+        const timelineWidth = 100; // процент ширины timeline от общей ширины
+        const labelWidth = 300; // фиксированная ширина в пикселях
+        currentDateLine.style.left = `calc(300px + ${currentPosition}% * (100% - 300px) / 100%)`;
+        chart.appendChild(currentDateLine);
+    }
+
+    function createExecutorGroups() {
+        const chart = document.getElementById('ganttChart');
+        const executors = {};
+
+        // Группируем задачи по исполнителям
+        tasks.forEach(task => {
+            if (!executors[task.executor]) {
+                executors[task.executor] = [];
+            }
+            executors[task.executor].push(task);
+        });
+
+        // Сортируем задачи в рамках исполнителя по приоритету
+        Object.keys(executors).forEach(executor => {
+            executors[executor].sort((a, b) => a.priority - b.priority);
+        });
+
+        // Создаем группы исполнителей
+        Object.keys(executors).forEach(executor => {
+            const group = document.createElement('div');
+            group.className = 'executor-group';
+
+            const header = document.createElement('div');
+            header.className = 'executor-header';
+            header.textContent = executor;
+            group.appendChild(header);
+
+            let currentTime = 0; // Для не студентских задач
+            let parallelTasks = []; // Для отслеживания параллельных задач
+
+            executors[executor].forEach((task, index) => {
+                const row = document.createElement('div');
+                row.className = 'task-row';
+
+                const label = document.createElement('div');
+                label.className = 'task-label';
+                label.textContent = task.name;
+                label.title = task.name; // Полное название в тултипе
+                row.appendChild(label);
+
+                const timelineDiv = document.createElement('div');
+                timelineDiv.className = 'task-timeline';
+
+                const taskBar = document.createElement('div');
+                taskBar.className = 'task-bar';
+
+                // Определяем класс задачи
+                if (task.isCompleted) {
+                    taskBar.classList.add('completed');
+                } else if (task.priority === 0) {
+                    taskBar.classList.add('in-progress');
+                } else if (task.commitment) {
+                    taskBar.classList.add('commitment');
+                } else if (task.isStudent) {
+                    taskBar.classList.add('student-task');
+                } else {
+                    taskBar.classList.add('best-effort');
+                }
+
+                // Расчет позиции и ширины
+                let startPos, width;
+
+                if (task.isStudent) {
+                    // Студенческие задачи начинаются одновременно
+                    startPos = 0;
+                } else if (task.canParallel && parallelTasks.length < 3) {
+                    // Параллельные задачи
+                    startPos = currentTime;
+                    parallelTasks.push(task);
+                } else {
+                    // Последовательные задачи
+                    startPos = currentTime;
+                    currentTime += task.duration;
+                    parallelTasks = parallelTasks.filter(t => t !== task);
+                }
+
+                width = (task.duration / totalWeeks) * 100;
+                const leftPos = (startPos / totalWeeks) * 100;
+
+                taskBar.style.left = `${leftPos}%`;
+                taskBar.style.width = `${width}%`;
+                taskBar.textContent = task.name.length > 30 ? task.name.substring(0, 30) + '...' : task.name;
+
+                // Добавляем обработчик для тултипа
+                taskBar.addEventListener('mouseenter', (e) => showTooltip(e, task));
+                taskBar.addEventListener('mouseleave', hideTooltip);
+
+                timelineDiv.appendChild(taskBar);
+                row.appendChild(timelineDiv);
+                group.appendChild(row);
+            });
+
+            chart.appendChild(group);
+        });
+    }
+
+    function showTooltip(event, task) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.innerHTML = `
+                <strong>${task.name}</strong><br>
+                Исполнитель: ${task.executor}<br>
+                Приоритет: ${task.priority}<br>
+                Длительность: ${task.duration} нед.<br>
+                Тип: ${task.commitment ? 'Commitment' : task.isStudent ? 'Студент/Стажер' : 'Best Effort'}<br>
+                Статус: ${task.isCompleted ? 'Готово' : task.priority === 0 ? 'В работе' : 'Запланировано'}<br>
+                Цель: ${task.goal}<br>
+                ${task.customer ? 'Заказчик: ' + task.customer + '<br>' : ''}
+                <em>${task.description}</em>
+            `;
+
+        tooltip.style.display = 'block';
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY + 10 + 'px';
+    }
+
+    function hideTooltip() {
+        document.getElementById('tooltip').style.display = 'none';
+    }
+
+    // Инициализация
+    createTimeline();
+    createExecutorGroups();
+</script>
+</body>
+</html>
